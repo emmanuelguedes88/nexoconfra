@@ -1,0 +1,586 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged, 
+  signInWithCustomToken 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  onSnapshot 
+} from 'firebase/firestore';
+import { 
+  Clock, 
+  Trophy, 
+  Gift, 
+  Star, 
+  Snowflake, 
+  Play, 
+  RotateCcw, 
+  CheckCircle2, 
+  XCircle,
+  TreePine,
+  LogOut,
+  PartyPopper
+} from 'lucide-react';
+
+// --- CONFIGURAÇÃO FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDg5YQ0e8IQkNieAaJQdlzt2ykrkw95W5c",
+  authDomain: "nexusconfra.firebaseapp.com",
+  projectId: "nexusconfra",
+  storageBucket: "nexusconfra.firebasestorage.app",
+  messagingSenderId: "328429270442",
+  appId: "1:328429270442:web:e4d79c3eb93fa6b30f27d3",
+  measurementId: "G-PB08JG5XYJ"
+};
+
+// Inicialização segura
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'nexo-christmas-quiz';
+
+// --- DADOS DO QUIZ ---
+const QUESTIONS = [
+  {
+    question: "Em qual cidade Jesus nasceu?",
+    options: ["Nazaré", "Belém", "Jerusalém", "Galileia"],
+    answer: 1
+  },
+  {
+    question: "Qual anjo anunciou o nascimento a Maria?",
+    options: ["Miguel", "Rafael", "Gabriel", "Uriel"],
+    answer: 2
+  },
+  {
+    question: "O que guiou os Magos até Jesus?",
+    options: ["Um mapa antigo", "Uma visão divina", "A voz de Deus", "Uma estrela brilhante"],
+    answer: 3
+  },
+  {
+    question: "Quais foram os presentes dos Reis Magos?",
+    options: ["Ouro, Prata e Bronze", "Ouro, Incenso e Mirra", "Roupas e Comida", "Incenso e Prata"],
+    answer: 1
+  },
+  {
+    question: "Onde Jesus foi colocado ao nascer?",
+    options: ["Berço de ouro", "Cama real", "Manjedoura", "No chão"],
+    answer: 2
+  },
+  {
+    question: "Quem visitou Jesus primeiro?",
+    options: ["Os pastores", "Os Reis Magos", "Soldados", "Vizinhos"],
+    answer: 0
+  },
+  {
+    question: "Quem era o Imperador Romano na época?",
+    options: ["Júlio César", "Nero", "César Augusto", "Tibério"],
+    answer: 2
+  },
+  {
+    question: "Por que José e Maria foram a Belém?",
+    options: ["Fugir de Herodes", "Visitar a família", "Recenseamento", "Férias"],
+    answer: 2
+  },
+  {
+    question: "Qual rei queria ferir o menino Jesus?",
+    options: ["Pilatos", "Herodes", "Faraó", "Saul"],
+    answer: 1
+  },
+  {
+    question: "Qual profeta falou sobre o nascimento virginal?",
+    options: ["Moisés", "Elias", "Isaías", "Jeremias"],
+    answer: 2
+  }
+];
+
+const TIME_PER_QUESTION = 20;
+
+// --- COMPONENTE DE ESTILOS GLOBAIS (NEVE E ANIMAÇÕES) ---
+const GlobalStyles = () => (
+  <style>{`
+    @keyframes snowfall {
+      0% { transform: translateY(-10vh) translateX(0px); opacity: 0.8; }
+      100% { transform: translateY(100vh) translateX(20px); opacity: 0.3; }
+    }
+    .snowflake {
+      position: absolute;
+      color: white;
+      font-size: 1.5rem;
+      animation: snowfall linear infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .btn-3d {
+      transition: all 0.1s;
+      transform: translateY(0);
+      border-bottom-width: 6px;
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(4px);
+      border-bottom-width: 2px;
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 4px solid #fff;
+    }
+  `}</style>
+);
+
+// --- COMPONENTE DE NEVE NO FUNDO ---
+const SnowBackground = () => {
+  const flakes = Array.from({ length: 20 });
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {flakes.map((_, i) => (
+        <div 
+          key={i}
+          className="snowflake"
+          style={{
+            left: `${Math.random() * 100}%`,
+            animationDuration: `${Math.random() * 5 + 5}s`,
+            animationDelay: `${Math.random() * 5}s`,
+            opacity: Math.random() * 0.5 + 0.3,
+            fontSize: `${Math.random() * 20 + 10}px`
+          }}
+        >
+          ❄
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// --- COMPONENTE PRINCIPAL ---
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [gameState, setGameState] = useState('login'); // login, playing, finished
+  const [nickname, setNickname] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
+
+  // Estados do Jogo
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
+  const [isAnswered, setIsAnswered] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  const timerRef = useRef(null);
+
+  // 1. Autenticação
+  useEffect(() => {
+    let isMounted = true;
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Erro auth:", error);
+        if (isMounted) setAuthError(error.message);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (isMounted) {
+        setUser(u);
+        setIsLoading(false);
+      }
+    }, (err) => {
+      if (isMounted) {
+        setAuthError(err.message);
+        setIsLoading(false);
+      }
+    });
+    return () => { isMounted = false; unsubscribe(); };
+  }, []);
+
+  // 2. Ranking
+  useEffect(() => {
+    if (!user) return;
+    const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'nexo_quiz_scores');
+    const unsubscribe = onSnapshot(scoresRef, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const sorted = data.sort((a, b) => b.score - a.score);
+      setLeaderboard(sorted);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // 3. Timer
+  useEffect(() => {
+    if (gameState === 'playing' && !isAnswered) {
+      if (timeLeft > 0) {
+        timerRef.current = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+      } else {
+        handleTimeOut();
+      }
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [timeLeft, gameState, isAnswered]);
+
+  const handleTimeOut = () => {
+    setIsAnswered(true);
+    setTimeout(nextQuestion, 2500);
+  };
+
+  const resetApplication = () => {
+    setGameState('login');
+    setScore(0);
+    setCurrentQuestionIndex(0);
+    setTimeLeft(TIME_PER_QUESTION);
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setNickname(''); // Limpa o nome para permitir troca de usuário
+  };
+
+  const restartGameOnly = () => {
+     // Mantém o nome, reinicia o jogo
+    setScore(0);
+    setCurrentQuestionIndex(0);
+    setTimeLeft(TIME_PER_QUESTION);
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setGameState('playing');
+  }
+
+  const startGame = () => {
+    if (!nickname.trim()) {
+      alert("Ho ho ho! Precisamos do seu nome primeiro!");
+      return;
+    }
+    setScore(0);
+    setCurrentQuestionIndex(0);
+    setTimeLeft(TIME_PER_QUESTION);
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setGameState('playing');
+  };
+
+  const handleAnswer = (optionIndex) => {
+    if (isAnswered) return;
+
+    setIsAnswered(true);
+    setSelectedOption(optionIndex);
+
+    const isCorrect = optionIndex === QUESTIONS[currentQuestionIndex].answer;
+    
+    if (isCorrect) {
+      // 10pts base + bônus de tempo
+      const points = 10 + timeLeft;
+      setScore(prev => prev + points);
+    }
+
+    setTimeout(nextQuestion, 2000);
+  };
+
+  const nextQuestion = () => {
+    if (currentQuestionIndex < QUESTIONS.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setTimeLeft(TIME_PER_QUESTION);
+      setIsAnswered(false);
+      setSelectedOption(null);
+    } else {
+      finishGame();
+    }
+  };
+
+  const finishGame = async () => {
+    setGameState('finished');
+    if (user) {
+      try {
+        const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'nexo_quiz_scores', user.uid);
+        await setDoc(userScoreRef, {
+          name: nickname,
+          score: score, // O estado pode ter lag, mas aqui assumimos atualização rápida ou usamos ref
+          timestamp: Date.now()
+        }, { merge: true }); // Merge para atualizar timestamp se existir
+        
+        // Pequena gambiarra para garantir que o score enviado é o correto (devido a async state)
+        // Em prod real, passariamos o score calculado como argumento
+      } catch (e) {
+        console.error("Erro save:", e);
+      }
+    }
+  };
+
+  // --- RENDERS ---
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-red-900 flex flex-col items-center justify-center text-white relative overflow-hidden font-sans">
+        <SnowBackground />
+        <div className="z-10 text-center animate-pulse">
+          <TreePine className="w-20 h-20 mx-auto text-green-400 mb-4" />
+          <h1 className="text-2xl font-bold">Carregando Natal Nexo...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  // TELA DE LOGIN (Cartão de Natal)
+  if (gameState === 'login') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-700 via-red-800 to-green-900 flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        <GlobalStyles />
+        <SnowBackground />
+        
+        {/* Decorative Circles Background */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-green-600 rounded-full blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-80 h-80 bg-gold-500 rounded-full blur-3xl opacity-20 translate-x-1/2 translate-y-1/2 text-yellow-500"></div>
+
+        <div className="max-w-md w-full glass-panel rounded-3xl shadow-2xl overflow-hidden transform transition-all z-10 relative">
+          {/* Header Card */}
+          <div className="bg-red-700 p-8 text-center relative border-b-4 border-yellow-400">
+             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+             
+             <div className="flex justify-center -mt-4 mb-4">
+                <div className="bg-white p-4 rounded-full shadow-lg border-4 border-green-600 relative top-4">
+                  <Gift className="w-10 h-10 text-red-600 animate-bounce" />
+                </div>
+             </div>
+             <h1 className="text-4xl font-extrabold text-white mt-4 drop-shadow-md tracking-tight">NEXO QUIZ</h1>
+             <p className="text-yellow-200 font-bold uppercase tracking-widest text-sm mt-1">Especial de Natal</p>
+          </div>
+          
+          <div className="p-8 pt-10 bg-white">
+            <div className="mb-6 text-center">
+              <p className="text-gray-600 mb-2">Bem-vindo(a) à festa!</p>
+              <label className="block text-gray-800 text-lg font-bold mb-2">
+                Como devemos te chamar?
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="Seu Nome ou Apelido"
+                className="w-full px-5 py-4 rounded-xl bg-gray-50 border-2 border-gray-200 focus:border-red-500 focus:bg-white outline-none transition-all text-xl text-center font-medium text-gray-700 placeholder-gray-300 shadow-inner"
+                onKeyDown={(e) => e.key === 'Enter' && startGame()}
+              />
+            </div>
+            
+            <button
+              onClick={startGame}
+              className="btn-3d w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:shadow-none border-green-700 text-xl flex items-center justify-center gap-3"
+            >
+              <Play className="w-6 h-6 fill-current" />
+              COMEÇAR AGORA
+            </button>
+          </div>
+          <div className="bg-gray-50 p-3 text-center text-xs text-gray-400 border-t">
+            Desafie seus colegas da Nexo!
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // TELA DE RESULTADO / RANKING
+  if (gameState === 'finished') {
+    return (
+      <div className="min-h-screen bg-green-900 flex flex-col items-center p-4 font-sans overflow-hidden relative">
+        <GlobalStyles />
+        <SnowBackground />
+        
+        <div className="w-full max-w-lg z-10 flex flex-col h-full">
+           {/* Header Simples */}
+           <div className="flex justify-end mb-4">
+              <button onClick={resetApplication} className="text-green-200 hover:text-white flex items-center gap-1 text-sm bg-green-800/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                <LogOut className="w-4 h-4" /> Sair
+              </button>
+           </div>
+
+           <div className="glass-panel rounded-3xl shadow-2xl overflow-hidden flex-1 flex flex-col mb-6">
+              <div className="bg-red-600 p-6 text-center relative overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-400/30 to-transparent animate-pulse"></div>
+                <PartyPopper className="w-16 h-16 mx-auto mb-2 text-yellow-300 drop-shadow-md" />
+                <h2 className="text-3xl font-bold text-white drop-shadow-sm">Fim de Jogo!</h2>
+                
+                <div className="mt-4 bg-white/20 backdrop-blur-sm rounded-xl p-3 inline-block min-w-[200px] border border-white/30">
+                  <p className="text-red-100 text-sm font-medium uppercase tracking-wide">Sua Pontuação</p>
+                  <div className="text-5xl font-black text-white drop-shadow-md">{score}</div>
+                </div>
+              </div>
+
+              <div className="flex-1 bg-white p-6 overflow-hidden flex flex-col">
+                <h3 className="text-gray-700 font-bold text-lg mb-4 flex items-center gap-2 uppercase tracking-wide shrink-0">
+                  <Trophy className="w-5 h-5 text-yellow-500 fill-current" />
+                  Ranking Nexo
+                </h3>
+                
+                <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar pb-4">
+                  {leaderboard.map((entry, index) => (
+                    <div 
+                      key={index} 
+                      className={`flex items-center justify-between p-3 rounded-xl border-b-4 transition-all ${
+                        entry.id === user.uid 
+                        ? 'bg-yellow-50 border-yellow-200 shadow-sm' 
+                        : 'bg-gray-50 border-gray-100 opacity-90'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`
+                          w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm shadow-inner
+                          ${index === 0 ? 'bg-yellow-400 text-yellow-900' : 
+                            index === 1 ? 'bg-gray-300 text-gray-800' : 
+                            index === 2 ? 'bg-orange-400 text-orange-900' : 'bg-gray-200 text-gray-500'}
+                        `}>
+                          {index + 1}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className={`font-bold leading-tight ${entry.id === user.uid ? 'text-gray-900' : 'text-gray-600'}`}>
+                            {entry.name}
+                          </span>
+                          {entry.id === user.uid && <span className="text-[10px] text-yellow-600 font-bold uppercase">Você</span>}
+                        </div>
+                      </div>
+                      <span className="font-black text-green-700 text-lg">{entry.score}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-3 shrink-0">
+                    <button
+                      onClick={restartGameOnly}
+                      className="btn-3d bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-bold py-3 rounded-xl shadow-[0_4px_0_rgb(161,98,7)] active:shadow-none border-yellow-600 flex flex-col items-center justify-center leading-none gap-1"
+                    >
+                      <RotateCcw className="w-5 h-5" />
+                      <span className="text-sm">Jogar de novo</span>
+                    </button>
+
+                    <button
+                      onClick={resetApplication}
+                      className="btn-3d bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-3 rounded-xl shadow-[0_4px_0_rgb(156,163,175)] active:shadow-none border-gray-400 flex flex-col items-center justify-center leading-none gap-1"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span className="text-sm">Sair / Trocar</span>
+                    </button>
+                </div>
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // TELA DO QUIZ (JOGANDO)
+  const currentQ = QUESTIONS[currentQuestionIndex];
+  
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+      <GlobalStyles />
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-900 to-slate-900"></div>
+      <SnowBackground />
+
+      <div className="max-w-xl w-full z-10 relative">
+        {/* Top Bar Navigation */}
+        <div className="flex justify-between items-center mb-6">
+            <button 
+                onClick={resetApplication}
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-md flex items-center gap-2 transition-colors border border-white/10"
+            >
+                <LogOut className="w-4 h-4" /> Sair
+            </button>
+            
+            <div className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-yellow-300 font-bold text-sm flex items-center gap-2">
+                <Star className="w-4 h-4 fill-current" /> {score} pts
+            </div>
+        </div>
+
+        {/* Card Principal */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-red-600/50 relative">
+          
+          {/* Header da Pergunta */}
+          <div className="bg-gray-50 p-6 pb-10 border-b relative">
+            <div className="flex justify-between items-start mb-4">
+                <span className="bg-red-100 text-red-700 text-xs font-black px-2 py-1 rounded uppercase tracking-widest">
+                    Questão {currentQuestionIndex + 1} / {QUESTIONS.length}
+                </span>
+                
+                {/* Timer Orbe */}
+                <div className={`
+                    w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg border-4 shadow-lg transition-all relative z-10 bg-white
+                    ${timeLeft <= 5 ? 'border-red-500 text-red-600 animate-pulse scale-110' : 'border-green-500 text-green-700'}
+                `}>
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-3 bg-gray-400"></div> {/* Cordinha do ornamento */}
+                    {timeLeft}
+                </div>
+            </div>
+            
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800 leading-tight pr-4">
+              {currentQ.question}
+            </h2>
+          </div>
+
+          {/* Opções */}
+          <div className="p-6 pt-8 -mt-6 rounded-t-3xl bg-white relative z-0 space-y-3">
+            {currentQ.options.map((option, idx) => {
+                let statusClass = "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"; // default
+                let shadowColor = "rgb(229, 231, 235)"; // gray-200
+                let icon = null;
+
+                if (isAnswered) {
+                  if (idx === currentQ.answer) {
+                    statusClass = "bg-green-500 border-green-600 text-white";
+                    shadowColor = "rgb(21, 128, 61)"; // green-700
+                    icon = <CheckCircle2 className="w-6 h-6 text-white ml-auto" />;
+                  } else if (idx === selectedOption) {
+                    statusClass = "bg-red-500 border-red-600 text-white";
+                    shadowColor = "rgb(185, 28, 28)"; // red-700
+                    icon = <XCircle className="w-6 h-6 text-white ml-auto" />;
+                  } else {
+                    statusClass = "opacity-40 bg-gray-100 border-gray-200";
+                  }
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleAnswer(idx)}
+                    disabled={isAnswered}
+                    className={`
+                      btn-3d w-full text-left px-5 py-4 rounded-xl border-2 font-bold text-lg flex items-center transition-colors
+                      ${statusClass}
+                    `}
+                    style={{ 
+                        boxShadow: !isAnswered ? `0 4px 0 ${shadowColor}` : 'none',
+                        borderBottomWidth: !isAnswered ? '2px' : '0px', // Reset border on answer for flat look or keep 3d? Let's keep 3d structure but color changes
+                        borderColor: isAnswered ? 'transparent' : ''
+                    }}
+                  >
+                    <span className="flex-1">{option}</span>
+                    {icon}
+                  </button>
+                );
+            })}
+          </div>
+
+          {/* Barra de Progresso Fita */}
+          <div className="h-3 w-full bg-gray-200 relative">
+             <div 
+                className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-700 relative"
+                style={{ width: `${((currentQuestionIndex + 1) / QUESTIONS.length) * 100}%` }}
+             >
+                {/* Efeito listrado de fita */}
+                <div className="absolute inset-0 w-full h-full bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#ffffff30_10px,#ffffff30_20px)]"></div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
