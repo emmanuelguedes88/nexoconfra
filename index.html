@@ -2,84 +2,166 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexo Quiz de Natal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Nexo Quiz de Natal 🎄</title>
     
-    <!-- 1. Carrega o Tailwind CSS (Estilos) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. Carrega React e ReactDOM -->
+    <!-- React Dependencies -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- 3. Carrega Babel para traduzir o código React no navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- 4. Ícones (Lucide) - Versão Global -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- FIREBASE (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- CONFETTI -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <!-- Estilos Adicionais -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
         
-        body { font-family: 'Inter', sans-serif; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Nunito', sans-serif; 
+            background-color: #7f1d1d;
+            overflow: hidden; 
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
 
-        @keyframes snowfall {
-            0% { transform: translateY(-10vh) translateX(0px); opacity: 0.8; }
-            100% { transform: translateY(100vh) translateX(20px); opacity: 0.3; }
+        /* NEVE */
+        #snow-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
         }
         .snowflake {
+            position: absolute; color: white; font-size: 1.5rem; animation: snowfall linear infinite;
+        }
+        @keyframes snowfall {
+            0% { transform: translateY(-10vh) translateX(0px); opacity: 0.8; }
+            100% { transform: translateY(100vh) translateX(20px); opacity: 0.2; }
+        }
+
+        /* SCROLL AREA */
+        #app-scroll-area {
             position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow-y: auto;
+            z-index: 10;
+            padding: 1rem;
+            padding-top: 90px; 
+            padding-bottom: 160px; /* Espaço generoso para o rodapé */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* BOTÕES TOPO */
+        .quantum-top-btn {
+            position: fixed; top: 15px; z-index: 999999 !important; background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px); border-radius: 9999px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid rgba(255,255,255,0.5);
+            transition: transform 0.1s;
+        }
+        .quantum-top-btn:active { transform: scale(0.95); background: #fff; }
+        .btn-exit { left: 15px; padding: 8px 16px; color: #991b1b; font-weight: bold; gap: 6px; }
+        .btn-music { right: 15px; width: 42px; height: 42px; color: #1f2937; }
+
+        /* BOTÃO ADMIN NUCLEAR */
+        .nuclear-admin-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999999 !important;
+            background: linear-gradient(to bottom, #16a34a, #15803d);
             color: white;
-            font-size: 1.5rem;
-            animation: snowfall linear infinite;
-            z-index: 0;
-            pointer-events: none;
+            border: 2px solid #a7f3d0;
+            border-bottom: 6px solid #14532d;
+            border-radius: 20px;
+            padding: 16px 32px;
+            width: 90%;
+            max-width: 350px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            animation: pulse 2s infinite;
         }
-        .btn-3d {
-            transition: all 0.1s;
-            transform: translateY(0);
-            border-bottom-width: 6px;
-        }
-        .btn-3d:active:not(:disabled) {
-            transform: translateY(4px);
+        .nuclear-admin-btn:active {
+            transform: translateX(-50%) translateY(4px);
             border-bottom-width: 2px;
+            animation: none;
         }
-        .glass-panel {
+        .btn-restart {
+            background: linear-gradient(to bottom, #dc2626, #b91c1c);
+            border-color: #fca5a5;
+            border-bottom-color: #7f1d1d;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.02); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        /* Interfaces */
+        .glass-card {
             background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 4px solid #fff;
+            border-radius: 24px;
+            border: 4px solid rgba(255,255,255,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .btn-main {
+            background: linear-gradient(to bottom, #16a34a, #15803d); color: white; border-bottom: 5px solid #14532d;
+            border-radius: 12px; padding: 15px; width: 100%; font-weight: 900; font-size: 1.2rem; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.1s;
+        }
+        .btn-main:active { transform: translateY(3px); border-bottom-width: 2px; }
+        
+        .player-chip {
+            background: white; padding: 10px; border-radius: 12px; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); animation: popIn 0.3s forwards; border-left: 4px solid #16a34a;
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        
+        .waiting-pulse {
+            animation: textPulse 1.5s infinite;
+        }
+        @keyframes textPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- Módulo principal -->
-    <script type="text/babel" data-type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { 
-            getAuth, 
-            signInAnonymously, 
-            onAuthStateChanged,
-            signInWithCustomToken 
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { 
-            getFirestore, 
-            collection, 
-            doc, 
-            setDoc, 
-            onSnapshot 
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
+    <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- CONFIGURAÇÃO FIREBASE ---
+        // ICONS
+        const IconPlay = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+        const IconExit = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
+        const IconMusic = ({on}) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{on ? <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/> : <path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/>}</svg>;
+        const IconUsers = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+        const IconCrown = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>;
+        const IconRotate = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+
         const firebaseConfig = {
             apiKey: "AIzaSyDg5YQ0e8IQkNieAaJQdlzt2ykrkw95W5c",
             authDomain: "nexusconfra.firebaseapp.com",
@@ -89,357 +171,205 @@
             appId: "1:328429270442:web:e4d79c3eb93fa6b30f27d3",
             measurementId: "G-PB08JG5XYJ"
         };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const appId = 'nexo_quiz_final_v43_senior_fix';
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = 'nexo-christmas-quiz';
-
-        // --- ÍCONES (Componentes SVG manuais para garantir compatibilidade sem build) ---
-        const Icons = {
-            Clock: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-            Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-            Gift: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>,
-            Star: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-            Play: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-            RotateCcw: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-            CheckCircle2: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
-            XCircle: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
-            TreePine: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.9-1.5l2.9-4H8.7a1 1 0 0 1-.9-1.5l2.3-3.2a.5.5 0 0 1 .8 0l2.3 3.2a1 1 0 0 1-.9 1.5H13l2.9 4H15.6a1 1 0 0 1-.9 1.5"/><path d="M12 22v-3"/></svg>,
-            LogOut: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
-            PartyPopper: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98v0C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>
-        };
-
-        // --- DADOS ---
         const QUESTIONS = [
-            { question: "Em qual cidade Jesus nasceu?", options: ["Nazaré", "Belém", "Jerusalém", "Galileia"], answer: 1 },
-            { question: "Qual anjo anunciou o nascimento a Maria?", options: ["Miguel", "Rafael", "Gabriel", "Uriel"], answer: 2 },
-            { question: "O que guiou os Magos até Jesus?", options: ["Um mapa antigo", "Uma visão divina", "A voz de Deus", "Uma estrela brilhante"], answer: 3 },
-            { question: "Quais foram os presentes dos Reis Magos?", options: ["Ouro, Prata e Bronze", "Ouro, Incenso e Mirra", "Roupas e Comida", "Incenso e Prata"], answer: 1 },
-            { question: "Onde Jesus foi colocado ao nascer?", options: ["Berço de ouro", "Cama real", "Manjedoura", "No chão"], answer: 2 },
-            { question: "Quem visitou Jesus primeiro?", options: ["Os pastores", "Os Reis Magos", "Soldados", "Vizinhos"], answer: 0 },
-            { question: "Quem era o Imperador Romano na época?", options: ["Júlio César", "Nero", "César Augusto", "Tibério"], answer: 2 },
-            { question: "Por que José e Maria foram a Belém?", options: ["Fugir de Herodes", "Visitar a família", "Recenseamento", "Férias"], answer: 2 },
-            { question: "Qual rei queria ferir o menino Jesus?", options: ["Pilatos", "Herodes", "Faraó", "Saul"], answer: 1 },
-            { question: "Qual profeta falou sobre o nascimento virginal?", options: ["Moisés", "Elias", "Isaías", "Jeremias"], answer: 2 }
+            { question: "Em qual cidade Jesus nasceu? 🏙️", options: ["Nazaré", "Belém", "Jerusalém", "Galileia"], answer: 1 },
+            { question: "Qual anjo visitou Maria? 👼", options: ["Miguel", "Rafael", "Gabriel", "Uriel"], answer: 2 },
+            { question: "O que guiou os Reis Magos? ⭐", options: ["GPS", "Visão", "Voz", "Estrela"], answer: 3 },
+            { question: "Quais foram os presentes? 🎁", options: ["Ouro, Prata, Bronze", "Ouro, Incenso, Mirra", "Roupas e Comida", "Incenso e Prata"], answer: 1 },
+            { question: "Onde Jesus dormiu? 🛌", options: ["Berço de Ouro", "Cama Real", "Manjedoura", "No Chão"], answer: 2 },
+            { question: "Quem visitou primeiro? 🐑", options: ["Pastores", "Reis Magos", "Soldados", "Vizinhos"], answer: 0 },
+            { question: "Imperador Romano da época? 👑", options: ["Júlio César", "Nero", "César Augusto", "Tibério"], answer: 2 },
+            { question: "Por que foram a Belém? 📜", options: ["Fugir", "Passear", "Recenseamento", "Festa"], answer: 2 },
+            { question: "Qual rei perseguiu Jesus? ⚔️", options: ["Pilatos", "Herodes", "Faraó", "Saul"], answer: 1 },
+            { question: "Profeta do nascimento? 📜", options: ["Moisés", "Elias", "Isaías", "Jeremias"], answer: 2 }
         ];
 
-        const TIME_PER_QUESTION = 20;
-
-        // --- COMPONENTE SNOW ---
-        const SnowBackground = () => {
-            const flakes = Array.from({ length: 20 });
-            return (
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {flakes.map((_, i) => (
-                    <div 
-                    key={i}
-                    className="snowflake"
-                    style={{
-                        left: `${Math.random() * 100}%`,
-                        animationDuration: `${Math.random() * 5 + 5}s`,
-                        animationDelay: `${Math.random() * 5}s`,
-                        opacity: Math.random() * 0.5 + 0.3,
-                        fontSize: `${Math.random() * 20 + 10}px`
-                    }}
-                    >
-                    ❄
-                    </div>
-                ))}
-                </div>
-            );
-        };
-
-        // --- APP PRINCIPAL ---
         function App() {
             const [user, setUser] = useState(null);
-            const [gameState, setGameState] = useState('login'); 
             const [nickname, setNickname] = useState('');
-            const [isLoading, setIsLoading] = useState(true);
-            const [authError, setAuthError] = useState(null);
-
-            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [localState, setLocalState] = useState('login'); 
+            const [serverStatus, setServerStatus] = useState('waiting');
+            const [players, setPlayers] = useState([]);
+            const [currentQIndex, setCurrentQIndex] = useState(0);
             const [score, setScore] = useState(0);
-            const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
-            const [isAnswered, setIsAnswered] = useState(false);
-            const [selectedOption, setSelectedOption] = useState(null);
-            const [leaderboard, setLeaderboard] = useState([]);
-
+            const [timeLeft, setTimeLeft] = useState(20);
+            const [answered, setAnswered] = useState(false);
+            const [selectedOpt, setSelectedOpt] = useState(null);
+            const [musicOn, setMusicOn] = useState(false);
+            const audioRef = useRef(new Audio("https://actions.google.com/sounds/v1/holidays/deck_the_halls.ogg"));
             const timerRef = useRef(null);
 
             useEffect(() => {
-                let isMounted = true;
-                const initAuth = async () => {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (error) {
-                        console.error("Erro auth:", error);
-                        if(isMounted) setAuthError(error.message);
-                    }
-                };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, (u) => {
-                    if(isMounted) {
-                        setUser(u);
-                        setIsLoading(false);
-                    }
-                });
-                return () => { isMounted = false; unsubscribe(); };
+                audioRef.current.loop = true; audioRef.current.volume = 0.3;
+                auth.signInAnonymously().catch(console.error);
+                auth.onAuthStateChanged(setUser);
+                try {
+                    db.collection('artifacts').doc(appId).collection('public').doc('gameState').onSnapshot(s => {
+                        if (s.exists) setServerStatus(s.data().status); else s.ref.set({status: 'waiting'});
+                    });
+                    db.collection('artifacts').doc(appId).collection('users').onSnapshot(s => setPlayers(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                } catch(e) { console.error(e); }
             }, []);
 
             useEffect(() => {
-                if (!user) return;
-                const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'nexo_quiz_scores');
-                const unsubscribe = onSnapshot(scoresRef, (snapshot) => {
-                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    const sorted = data.sort((a, b) => b.score - a.score);
-                    setLeaderboard(sorted);
-                });
-                return () => unsubscribe();
-            }, [user]);
+                if (serverStatus === 'playing' && localState === 'lobby') {
+                    setLocalState('playing'); setScore(0); setCurrentQIndex(0); setTimeLeft(20); setAnswered(false);
+                } else if (serverStatus === 'waiting' && localState === 'finished') {
+                    setLocalState('lobby'); setScore(0);
+                }
+            }, [serverStatus, localState]);
 
             useEffect(() => {
-                if (gameState === 'playing' && !isAnswered) {
-                    if (timeLeft > 0) {
-                        timerRef.current = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
-                    } else {
-                        handleTimeOut();
-                    }
+                if (localState === 'playing' && !answered) {
+                    if (timeLeft > 0) timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+                    else handleAnswer(-1);
                 }
                 return () => clearTimeout(timerRef.current);
-            }, [timeLeft, gameState, isAnswered]);
+            }, [timeLeft, localState, answered]);
 
-            const handleTimeOut = () => {
-                setIsAnswered(true);
-                setTimeout(nextQuestion, 2500);
+            const toggleMusic = () => { if(musicOn) audioRef.current.pause(); else audioRef.current.play().catch(()=>{}); setMusicOn(!musicOn); };
+            const toggleAdmin = () => setIsAdmin(!isAdmin);
+            const joinGame = async () => {
+                if(!nickname.trim()) return alert("Digite seu nome!");
+                if(!user) return;
+                if(!musicOn) audioRef.current.play().then(()=>setMusicOn(true)).catch(()=>{});
+                await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).set({
+                    name: nickname, score: 0, avatar: ['🎅','⛄','🦌'][Math.floor(Math.random()*3)]
+                });
+                setLocalState('lobby');
             };
-
-            const resetApplication = () => {
-                setGameState('login');
-                setScore(0);
-                setCurrentQuestionIndex(0);
-                setTimeLeft(TIME_PER_QUESTION);
-                setIsAnswered(false);
-                setSelectedOption(null);
-                setNickname(''); 
+            const leaveGame = () => { setLocalState('login'); setNickname(''); setIsAdmin(false); };
+            const adminStart = () => { db.collection('artifacts').doc(appId).collection('public').doc('gameState').set({status: 'playing'}, {merge:true}).catch(e=>alert(e.message)); };
+            const adminReset = () => {
+                db.collection('artifacts').doc(appId).collection('public').doc('gameState').set({status: 'waiting'}, {merge:true}).catch(e=>alert(e.message));
+                players.forEach(p => db.collection('artifacts').doc(appId).collection('users').doc(p.id).update({score: 0}));
             };
-
-            const restartGameOnly = () => {
-                setScore(0);
-                setCurrentQuestionIndex(0);
-                setTimeLeft(TIME_PER_QUESTION);
-                setIsAnswered(false);
-                setSelectedOption(null);
-                setGameState('playing');
-            }
-
-            const startGame = () => {
-                if (!nickname.trim()) {
-                    alert("Ho ho ho! Precisamos do seu nome primeiro!");
-                    return;
-                }
-                setScore(0);
-                setCurrentQuestionIndex(0);
-                setTimeLeft(TIME_PER_QUESTION);
-                setIsAnswered(false);
-                setSelectedOption(null);
-                setGameState('playing');
+            const handleAnswer = (idx) => {
+                if(answered) return; setAnswered(true); setSelectedOpt(idx);
+                if(idx === QUESTIONS[currentQIndex].answer) { confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } }); setScore(s => s + 10 + timeLeft); }
+                setTimeout(() => { if(currentQIndex < QUESTIONS.length - 1) { setCurrentQIndex(i => i + 1); setTimeLeft(20); setAnswered(false); setSelectedOpt(null); } else finishGame(); }, 2000);
             };
-
-            const handleAnswer = (optionIndex) => {
-                if (isAnswered) return;
-                setIsAnswered(true);
-                setSelectedOption(optionIndex);
-                const isCorrect = optionIndex === QUESTIONS[currentQuestionIndex].answer;
-                if (isCorrect) {
-                    const points = 10 + timeLeft;
-                    setScore(prev => prev + points);
-                }
-                setTimeout(nextQuestion, 2000);
-            };
-
-            const nextQuestion = () => {
-                if (currentQuestionIndex < QUESTIONS.length - 1) {
-                    setCurrentQuestionIndex(prev => prev + 1);
-                    setTimeLeft(TIME_PER_QUESTION);
-                    setIsAnswered(false);
-                    setSelectedOption(null);
-                } else {
-                    finishGame();
-                }
-            };
-
             const finishGame = async () => {
-                setGameState('finished');
-                if (user) {
-                    try {
-                        const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', 'nexo_quiz_scores', user.uid);
-                        await setDoc(userScoreRef, {
-                            name: nickname,
-                            score: score, 
-                            timestamp: Date.now()
-                        }, { merge: true }); 
-                    } catch (e) { console.error("Erro save:", e); }
-                }
+                setLocalState('finished'); confetti({ particleCount: 150 });
+                if(user) await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).update({score: score});
+            };
+            const Snow = () => {
+                const [flakes] = useState(Array.from({length: 15}));
+                return <div id="snow-layer">{flakes.map((_,i) => <div key={i} className="snowflake" style={{ left: Math.random()*100+'%', fontSize: (Math.random()*20+10)+'px', animationDuration: (Math.random()*5+5)+'s', animationDelay: (Math.random()*5)+'s' }}>❄</div>)}</div>;
             };
 
-            if (isLoading) {
-                return (
-                    <div className="min-h-screen bg-red-900 flex flex-col items-center justify-center text-white relative overflow-hidden font-sans">
-                        <SnowBackground />
-                        <div className="z-10 text-center animate-pulse">
-                            <Icons.TreePine className="w-20 h-20 mx-auto text-green-400 mb-4" />
-                            <h1 className="text-2xl font-bold">Carregando Natal Nexo...</h1>
-                        </div>
-                    </div>
-                );
-            }
+            return (
+                <div style={{width:'100%', height:'100%'}}>
+                    <Snow />
+                    {localState !== 'login' && (
+                        <>
+                            <button onClick={leaveGame} className="quantum-top-btn btn-exit"><IconExit /> SAIR</button>
+                            <button onClick={toggleMusic} className="quantum-top-btn btn-music"><IconMusic on={musicOn} /></button>
+                        </>
+                    )}
+                    {isAdmin && localState === 'lobby' && <button onClick={adminStart} className="nuclear-admin-btn"><IconPlay /> INICIAR JOGO</button>}
+                    {isAdmin && localState === 'finished' && <button onClick={adminReset} className="nuclear-admin-btn btn-restart"><IconRotate /> REINICIAR TUDO</button>}
 
-            if (gameState === 'login') {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-red-700 via-red-800 to-green-900 flex items-center justify-center p-4 font-sans relative overflow-hidden">
-                        <SnowBackground />
-                        <div className="absolute top-0 left-0 w-64 h-64 bg-green-600 rounded-full blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
-                        <div className="absolute bottom-0 right-0 w-80 h-80 bg-yellow-500 rounded-full blur-3xl opacity-20 translate-x-1/2 translate-y-1/2"></div>
+                    <div id="app-scroll-area">
+                        {localState === 'login' && (
+                            <div className="glass-card text-center" style={{marginTop: 'auto', marginBottom: 'auto'}}>
+                                <div className="text-6xl mb-4 animate-bounce">🎅</div>
+                                <h1 className="text-4xl font-black text-red-600 mb-2">NEXO QUIZ</h1>
+                                <p className="text-green-700 font-bold mb-6 text-sm">🎄 Edição de Natal 🎄</p>
+                                <input className="w-full bg-gray-50 border-2 border-green-200 rounded-xl p-4 text-center text-lg font-bold mb-4 outline-none focus:border-green-500" placeholder="Digite seu Nome" value={nickname} onChange={e => setNickname(e.target.value)} />
+                                <button onClick={joinGame} className="btn-main"><IconPlay /> ENTRAR</button>
+                                <div className="mt-6 pt-4 border-t border-gray-200"><button onClick={toggleAdmin} className={`text-sm font-bold flex items-center justify-center gap-2 mx-auto transition-all ${isAdmin ? 'text-yellow-600 scale-110' : 'text-gray-400'}`}>{isAdmin ? <><IconCrown/> MODO ORGANIZADOR</> : "Sou o Organizador"}</button></div>
+                            </div>
+                        )}
 
-                        <div className="max-w-md w-full glass-panel rounded-3xl shadow-2xl overflow-hidden transform transition-all z-10 relative">
-                            <div className="bg-red-700 p-8 text-center relative border-b-4 border-yellow-400">
-                                <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-repeat" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/stardust.png')"}}></div>
-                                <div className="flex justify-center -mt-4 mb-4">
-                                    <div className="bg-white p-4 rounded-full shadow-lg border-4 border-green-600 relative top-4">
-                                        <Icons.Gift className="w-10 h-10 text-red-600 animate-bounce" />
-                                    </div>
+                        {localState === 'lobby' && (
+                            <>
+                                <div className="glass-card text-center mb-4">
+                                    <h2 className="text-2xl font-bold text-red-600 flex items-center justify-center gap-2 mb-2"><IconUsers /> Saguão</h2>
+                                    <p className="text-sm text-gray-500 font-bold">{players.length} participante(s) online</p>
+                                    {!isAdmin && <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 waiting-pulse"><p className="text-yellow-800 font-bold text-sm">Aguardando o Organizador iniciar...</p></div>}
+                                    {isAdmin && <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200"><p className="text-green-800 font-bold text-sm">Você é o Organizador! <br/>Clique abaixo para começar.</p></div>}
                                 </div>
-                                <h1 className="text-4xl font-extrabold text-white mt-4 drop-shadow-md tracking-tight">NEXO QUIZ</h1>
-                                <p className="text-yellow-200 font-bold uppercase tracking-widest text-sm mt-1">Especial de Natal</p>
-                            </div>
-                            
-                            <div className="p-8 pt-10 bg-white">
-                                <div className="mb-6 text-center">
-                                    <p className="text-gray-600 mb-2">Bem-vindo(a) à festa!</p>
-                                    <label className="block text-gray-800 text-lg font-bold mb-2">Como devemos te chamar?</label>
-                                    <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Seu Nome ou Apelido" className="w-full px-5 py-4 rounded-xl bg-gray-50 border-2 border-gray-200 focus:border-red-500 focus:bg-white outline-none transition-all text-xl text-center font-medium text-gray-700 placeholder-gray-300 shadow-inner" onKeyDown={(e) => e.key === 'Enter' && startGame()} />
-                                </div>
-                                <button onClick={startGame} className="btn-3d w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] active:shadow-none border-green-700 text-xl flex items-center justify-center gap-3">
-                                    <Icons.Play className="w-6 h-6 fill-current" /> COMEÇAR AGORA
-                                </button>
-                            </div>
-                            <div className="bg-gray-50 p-3 text-center text-xs text-gray-400 border-t">Desafie seus colegas da Nexo!</div>
-                        </div>
-                    </div>
-                );
-            }
+                                <div className="w-full max-w-[500px] grid grid-cols-2 gap-3">{players.map(p => <div key={p.id} className="player-chip"><span className="text-2xl">{p.avatar}</span><p className="font-bold text-gray-800 text-sm truncate">{p.name}</p></div>)}</div>
+                            </>
+                        )}
 
-            if (gameState === 'finished') {
-                return (
-                    <div className="min-h-screen bg-green-900 flex flex-col items-center p-4 font-sans overflow-hidden relative">
-                        <SnowBackground />
-                        <div className="w-full max-w-lg z-10 flex flex-col h-full">
-                            <div className="flex justify-end mb-4">
-                                <button onClick={resetApplication} className="text-green-200 hover:text-white flex items-center gap-1 text-sm bg-green-800/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                                    <Icons.LogOut className="w-4 h-4" /> Sair
-                                </button>
-                            </div>
-                            <div className="glass-panel rounded-3xl shadow-2xl overflow-hidden flex-1 flex flex-col mb-6">
-                                <div className="bg-red-600 p-6 text-center relative overflow-hidden shrink-0">
-                                    <div className="absolute inset-0 bg-yellow-400 opacity-20 animate-pulse"></div>
-                                    <Icons.PartyPopper className="w-16 h-16 mx-auto mb-2 text-yellow-300 drop-shadow-md" />
-                                    <h2 className="text-3xl font-bold text-white drop-shadow-sm">Fim de Jogo!</h2>
-                                    <div className="mt-4 bg-white/20 backdrop-blur-sm rounded-xl p-3 inline-block min-w-[200px] border border-white/30">
-                                        <p className="text-red-100 text-sm font-medium uppercase tracking-wide">Sua Pontuação</p>
-                                        <div className="text-5xl font-black text-white drop-shadow-md">{score}</div>
-                                    </div>
+                        {localState === 'playing' && (
+                            <div className="glass-card">
+                                <div className="flex justify-between items-end mb-4">
+                                    <div><span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold block w-fit mb-1">Questão {currentQIndex+1}/{QUESTIONS.length}</span><span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold block w-fit">⭐ {score}</span></div>
+                                    <div className={`text-3xl font-black w-16 h-16 rounded-full border-4 flex items-center justify-center bg-white ${timeLeft<=5?'text-red-500 border-red-500 animate-pulse':'text-green-600 border-green-500'}`}>{timeLeft}</div>
                                 </div>
-                                <div className="flex-1 bg-white p-6 overflow-hidden flex flex-col">
-                                    <h3 className="text-gray-700 font-bold text-lg mb-4 flex items-center gap-2 uppercase tracking-wide shrink-0">
-                                        <Icons.Trophy className="w-5 h-5 text-yellow-500 fill-current" /> Ranking Nexo
-                                    </h3>
-                                    <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar pb-4">
-                                        {leaderboard.map((entry, index) => (
-                                            <div key={index} className={`flex items-center justify-between p-3 rounded-xl border-b-4 transition-all ${entry.id === user.uid ? 'bg-yellow-50 border-yellow-200 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-90'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm shadow-inner ${index === 0 ? 'bg-yellow-400 text-yellow-900' : index === 1 ? 'bg-gray-300 text-gray-800' : index === 2 ? 'bg-orange-400 text-orange-900' : 'bg-gray-200 text-gray-500'}`}>{index + 1}</div>
-                                                    <div className="flex flex-col">
-                                                        <span className={`font-bold leading-tight ${entry.id === user.uid ? 'text-gray-900' : 'text-gray-600'}`}>{entry.name}</span>
-                                                        {entry.id === user.uid && <span className="text-[10px] text-yellow-600 font-bold uppercase">Você</span>}
+                                <h2 className="text-xl font-bold text-gray-800 mb-6 min-h-[60px] flex items-center">{QUESTIONS[currentQIndex].question}</h2>
+                                <div className="flex flex-col gap-3">{QUESTIONS[currentQIndex].options.map((opt, i) => {
+                                    let style = "bg-gray-100 text-gray-700 border-gray-200";
+                                    if(answered) { if(i === QUESTIONS[currentQIndex].answer) style = "bg-green-500 text-white border-green-700"; else if(i === selectedOpt) style = "bg-red-500 text-white border-red-700 opacity-80"; else style = "bg-gray-200 opacity-50"; }
+                                    return <button key={i} onClick={() => handleAnswer(i)} className={`p-4 rounded-xl font-bold text-left transition-all border-b-4 ${style} ${!answered && 'active:translate-y-1 active:border-b-2'}`} disabled={answered}>{opt}</button>
+                                })}</div>
+                            </div>
+                        )}
+
+                        {localState === 'finished' && (
+                            <>
+                                <div className="glass-card text-center mb-4">
+                                    <div className="text-5xl mb-2 animate-bounce">🏆</div>
+                                    <h2 className="text-2xl font-black text-gray-800">RANKING FINAL</h2>
+                                </div>
+                                
+                                {/* CONTAINER DA LISTA DE RANKING BLINDADO */}
+                                <div className="w-full max-w-[500px] bg-white rounded-2xl shadow-lg overflow-hidden mb-32 border-b-8 border-green-700 relative z-20" style={{minHeight: '300px'}}>
+                                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
+                                        {[...players].sort((a,b) => b.score - a.score).map((p, i) => {
+                                            
+                                            // ÍCONE DE POSIÇÃO
+                                            let rankIcon;
+                                            if (i === 0) rankIcon = <span className="text-4xl filter drop-shadow-sm">🥇</span>;
+                                            else if (i === 1) rankIcon = <span className="text-4xl filter drop-shadow-sm">🥈</span>;
+                                            else if (i === 2) rankIcon = <span className="text-4xl filter drop-shadow-sm">🥉</span>;
+                                            else rankIcon = <span className="text-lg font-bold text-gray-400">#{i + 1}</span>;
+
+                                            return (
+                                                <div key={p.id} className={`flex items-center p-4 gap-3 h-24 ${p.id === user?.uid ? 'bg-yellow-50' : 'bg-white'}`}>
+                                                    
+                                                    {/* COL 1: POSIÇÃO */}
+                                                    <div className="flex-none w-16 flex justify-center items-center">
+                                                        {rankIcon}
+                                                    </div>
+                                                    
+                                                    {/* COL 2: NOME */}
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-center text-left">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-2xl flex-shrink-0">{p.avatar}</span>
+                                                            <span className="font-bold text-gray-800 text-lg truncate">
+                                                                {p.name}
+                                                            </span>
+                                                        </div>
+                                                        {p.id === user?.uid && <span className="text-[10px] font-black text-green-600 bg-green-100 px-2 py-0.5 rounded-full w-fit uppercase tracking-wider mt-1">VOCÊ</span>}
+                                                    </div>
+
+                                                    {/* COL 3: PONTOS */}
+                                                    <div className="flex-none text-right min-w-[70px]">
+                                                        <span className="block font-black text-xl text-green-700 leading-none">{p.score}</span>
+                                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">PTS</span>
                                                     </div>
                                                 </div>
-                                                <span className="font-black text-green-700 text-lg">{entry.score}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-3 shrink-0">
-                                        <button onClick={restartGameOnly} className="btn-3d bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-bold py-3 rounded-xl shadow-[0_4px_0_rgb(161,98,7)] active:shadow-none border-yellow-600 flex flex-col items-center justify-center leading-none gap-1">
-                                            <Icons.RotateCcw className="w-5 h-5" /> <span className="text-sm">Jogar de novo</span>
-                                        </button>
-                                        <button onClick={resetApplication} className="btn-3d bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-3 rounded-xl shadow-[0_4px_0_rgb(156,163,175)] active:shadow-none border-gray-400 flex flex-col items-center justify-center leading-none gap-1">
-                                            <Icons.LogOut className="w-5 h-5" /> <span className="text-sm">Sair / Trocar</span>
-                                        </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            const currentQ = QUESTIONS[currentQuestionIndex];
-            
-            return (
-                <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-blue-900 to-slate-900"></div>
-                    <SnowBackground />
-                    <div className="max-w-xl w-full z-10 relative">
-                        <div className="flex justify-between items-center mb-6">
-                            <button onClick={resetApplication} className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-md flex items-center gap-2 transition-colors border border-white/10">
-                                <Icons.LogOut className="w-4 h-4" /> Sair
-                            </button>
-                            <div className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-yellow-300 font-bold text-sm flex items-center gap-2">
-                                <Icons.Star className="w-4 h-4 fill-current" /> {score} pts
-                            </div>
-                        </div>
-                        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-red-600/50 relative">
-                            <div className="bg-gray-50 p-6 pb-10 border-b relative">
-                                <div className="flex justify-between items-start mb-4">
-                                    <span className="bg-red-100 text-red-700 text-xs font-black px-2 py-1 rounded uppercase tracking-widest">Questão {currentQuestionIndex + 1} / {QUESTIONS.length}</span>
-                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg border-4 shadow-lg transition-all relative z-10 bg-white ${timeLeft <= 5 ? 'border-red-500 text-red-600 animate-pulse scale-110' : 'border-green-500 text-green-700'}`}>
-                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-3 bg-gray-400"></div> {timeLeft}
-                                    </div>
-                                </div>
-                                <h2 className="text-xl md:text-2xl font-bold text-gray-800 leading-tight pr-4">{currentQ.question}</h2>
-                            </div>
-                            <div className="p-6 pt-8 -mt-6 rounded-t-3xl bg-white relative z-0 space-y-3">
-                                {currentQ.options.map((option, idx) => {
-                                    let statusClass = "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"; 
-                                    let shadowColor = "rgb(229, 231, 235)"; 
-                                    let icon = null;
-                                    if (isAnswered) {
-                                        if (idx === currentQ.answer) {
-                                            statusClass = "bg-green-500 border-green-600 text-white"; shadowColor = "rgb(21, 128, 61)"; icon = <Icons.CheckCircle2 className="w-6 h-6 text-white ml-auto" />;
-                                        } else if (idx === selectedOption) {
-                                            statusClass = "bg-red-500 border-red-600 text-white"; shadowColor = "rgb(185, 28, 28)"; icon = <Icons.XCircle className="w-6 h-6 text-white ml-auto" />;
-                                        } else {
-                                            statusClass = "opacity-40 bg-gray-100 border-gray-200";
-                                        }
-                                    }
-                                    return (
-                                        <button key={idx} onClick={() => handleAnswer(idx)} disabled={isAnswered} className={`btn-3d w-full text-left px-5 py-4 rounded-xl border-2 font-bold text-lg flex items-center transition-colors ${statusClass}`} style={{ boxShadow: !isAnswered ? `0 4px 0 ${shadowColor}` : 'none', borderBottomWidth: !isAnswered ? '2px' : '0px', borderColor: isAnswered ? 'transparent' : '' }}>
-                                            <span className="flex-1">{option}</span> {icon}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <div className="h-3 w-full bg-gray-200 relative">
-                                <div className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-700 relative" style={{ width: `${((currentQuestionIndex + 1) / QUESTIONS.length) * 100}%` }}>
-                                    <div className="absolute inset-0 w-full h-full bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#ffffff30_10px,#ffffff30_20px)]"></div>
-                                </div>
-                            </div>
-                        </div>
+                            </>
+                        )}
                     </div>
                 </div>
             );
         }
-        
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
